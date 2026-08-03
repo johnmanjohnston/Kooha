@@ -68,6 +68,8 @@ mod imp {
         #[template_child]
         pub(super) window_title: TemplateChild<adw::WindowTitle>,
         #[template_child]
+        pub(super) manual_button: TemplateChild<gtk::Button>,
+        #[template_child]
         pub(super) done_button: TemplateChild<gtk::Button>,
         #[template_child]
         pub(super) stack: TemplateChild<gtk::Stack>,
@@ -103,6 +105,10 @@ mod imp {
                 } else {
                     tracing::error!("Sent result twice");
                 }
+            });
+
+            klass.install_action("area-selector.manual", None, move |obj, _, _| {
+                println!("CUSTOM BTUTON WORKS AAAAAAAAAAAAAA");
             });
 
             klass.install_action("area-selector.done", None, move |obj, _, _| {
@@ -461,6 +467,7 @@ impl AreaSelector {
 
         self.action_set_enabled("area-selector.reset", selection.is_some());
         self.action_set_enabled("area-selector.done", selection.is_some());
+        self.action_set_enabled("area-selector.manual", selection.is_some());
 
         if selection.is_some() {
             imp.done_button.grab_focus();

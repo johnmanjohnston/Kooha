@@ -32,7 +32,7 @@
             </child>
             <child type="end">
               <object class="GtkButton" id="manual_button">
-                <property name="label" translatable="no">Manual Coordinates</property>
+                <property name="label" translatable="yes">Manual Coordinates</property>
                 <property name="action-name">area-selector.manual</property>
               </object>
             </child>

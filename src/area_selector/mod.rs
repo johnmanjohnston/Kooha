@@ -110,8 +110,9 @@ mod imp {
             klass.install_action("area-selector.manual", None, move |obj, _, _| {
                 let paintable_width = obj.imp().view_port.paintable_rect().unwrap().width();
                 let paintable_height = obj.imp().view_port.paintable_rect().unwrap().height();
-                let intrinstic_width = obj.imp().view_port.paintable().unwrap().intrinsic_width();
-                let mul = paintable_width / intrinstic_width as f32;
+                let intrinsic_width = obj.imp().view_port.paintable().unwrap().intrinsic_width();
+                let intrinsic_height = obj.imp().view_port.paintable().unwrap().intrinsic_height();
+                let mul = paintable_width / intrinsic_width as f32;
 
                 let min_usable_x = obj.imp().view_port.paintable_rect().unwrap().x(); // offset
                 let min_usable_y = obj.imp().view_port.paintable_rect().unwrap().y();
@@ -122,36 +123,40 @@ mod imp {
                 // x
                 let x_adj = create_coordinate_adjustment(
                     (obj.imp().view_port.selection().unwrap().left_x() - min_usable_x) / mul,
+                    intrinsic_width,
                 );
                 let x_label = gtk::Label::new(Some(&"X"));
-                let x_field = gtk::SpinButton::new(Some(&x_adj), 500f64, 0u32);
+                let x_field = gtk::SpinButton::new(Some(&x_adj), 100f64, 0u32);
                 context_box.append(&x_field);
                 context_box.append(&x_label);
 
                 // y
                 let y_adj = create_coordinate_adjustment(
                     (obj.imp().view_port.selection().unwrap().top_y() - min_usable_y) / mul,
+                    intrinsic_height,
                 );
                 let y_label = gtk::Label::new(Some(&"Y"));
-                let y_field = gtk::SpinButton::new(Some(&y_adj), 500f64, 0u32);
+                let y_field = gtk::SpinButton::new(Some(&y_adj), 100f64, 0u32);
                 context_box.append(&y_field);
                 context_box.append(&y_label);
 
                 // width
                 let width_adj = create_coordinate_adjustment(
                     obj.imp().view_port.selection().unwrap().rect().width() / mul,
+                    intrinsic_width,
                 );
                 let width_label = gtk::Label::new(Some(&"Width"));
-                let width_field = gtk::SpinButton::new(Some(&width_adj), 500f64, 0u32);
+                let width_field = gtk::SpinButton::new(Some(&width_adj), 100f64, 0u32);
                 context_box.append(&width_field);
                 context_box.append(&width_label);
 
                 // height
                 let height_adj = create_coordinate_adjustment(
                     obj.imp().view_port.selection().unwrap().rect().height() / mul,
+                    intrinsic_height,
                 );
                 let height_label = gtk::Label::new(Some(&"Height"));
-                let height_field = gtk::SpinButton::new(Some(&height_adj), 500f64, 0u32);
+                let height_field = gtk::SpinButton::new(Some(&height_adj), 100f64, 0u32);
                 context_box.append(&height_field);
                 context_box.append(&height_label);
 
@@ -187,8 +192,6 @@ mod imp {
                     x += min_usable_x;
 
                     let mut y = y_adj.value() as f32 * mul;
-                    // there is no y offset that really /needs/ to be added, but this is to future
-                    // proof incase changes in the UI do introduce the need for an offset
                     y += min_usable_y;
 
                     let mut width = width_adj.value() as f32 * mul;
@@ -203,8 +206,6 @@ mod imp {
                     obj.imp()
                         .view_port
                         .set_selection(Some(Selection::from_rect(x, y, width, height)));
-
-                    println!("x={}", x);
                 });
             });
 
@@ -281,8 +282,8 @@ mod imp {
 
     impl AdwWindowImpl for AreaSelector {}
 
-    fn create_coordinate_adjustment(default: f32) -> gtk::Adjustment {
-        return gtk::Adjustment::new(default as f64, 0f64, 10000f64, 500f64, 500f64, 500f64);
+    fn create_coordinate_adjustment(default: f32, upper: i32) -> gtk::Adjustment {
+        return gtk::Adjustment::new(default as f64, 0f64, upper as f64, 100f64, 100f64, 0f64);
     }
 }
 

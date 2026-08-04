@@ -113,12 +113,15 @@ mod imp {
                 let intrinstic_width = obj.imp().view_port.paintable().unwrap().intrinsic_width();
                 let mul = paintable_width / intrinstic_width as f32;
 
+                let min_usable_x = obj.imp().view_port.paintable_rect().unwrap().x(); // offset
+                let min_usable_y = obj.imp().view_port.paintable_rect().unwrap().y();
+
                 let dialog = adw::Dialog::builder().build();
                 let context_box = gtk::Box::new(gtk::Orientation::Vertical, 12);
 
                 // x
                 let x_adj = create_coordinate_adjustment(
-                    obj.imp().view_port.selection().unwrap().left_x() / mul,
+                    (obj.imp().view_port.selection().unwrap().left_x() - min_usable_x) / mul,
                 );
                 let x_label = gtk::Label::new(Some(&"X"));
                 let x_field = gtk::SpinButton::new(Some(&x_adj), 500f64, 0u32);
@@ -127,7 +130,7 @@ mod imp {
 
                 // y
                 let y_adj = create_coordinate_adjustment(
-                    obj.imp().view_port.selection().unwrap().top_y() / mul,
+                    (obj.imp().view_port.selection().unwrap().top_y() - min_usable_y) / mul,
                 );
                 let y_label = gtk::Label::new(Some(&"Y"));
                 let y_field = gtk::SpinButton::new(Some(&y_adj), 500f64, 0u32);
@@ -174,28 +177,35 @@ mod imp {
                     dialog.close();
                 });
 
-                let obj = obj.clone();
+                let weak_obj = obj.downgrade();
                 apply_btn.connect_clicked(move |_btn| {
-                    let min_usable_x = obj.imp().view_port.paintable_rect().unwrap().x();
-                    let min_usable_y = obj.imp().view_port.paintable_rect().unwrap().y();
+                    let Some(obj) = weak_obj.upgrade() else {
+                        return;
+                    };
 
                     let mut x = x_adj.value() as f32 * mul;
+                    x += min_usable_x;
+
                     let mut y = y_adj.value() as f32 * mul;
+                    // there is no y offset that really /needs/ to be added, but this is to future
+                    // proof incase changes in the UI do introduce the need for an offset
+                    y += min_usable_y;
+
                     let mut width = width_adj.value() as f32 * mul;
                     let mut height = height_adj.value() as f32 * mul;
 
                     // bounds checks
                     x = f32::max(x, min_usable_x);
                     y = f32::max(y, min_usable_y);
-                    width = f32::min(width, paintable_width - x);
-                    height = f32::min(height, paintable_height - x);
+                    width = f32::min(width, paintable_width - x + min_usable_x);
+                    height = f32::min(height, paintable_height - y + min_usable_y);
 
                     obj.imp()
                         .view_port
                         .set_selection(Some(Selection::from_rect(x, y, width, height)));
-                });
 
-                println!("CUSTOM BTUTON WORKS AAAAAAAAAAAAAA");
+                    println!("x={}", x);
+                });
             });
 
             klass.install_action("area-selector.done", None, move |obj, _, _| {

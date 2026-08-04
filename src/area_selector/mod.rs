@@ -108,6 +108,50 @@ mod imp {
             });
 
             klass.install_action("area-selector.manual", None, move |obj, _, _| {
+                obj.imp()
+                    .view_port
+                    .set_selection(Some(Selection::from_rect(0f32, 0f32, 100f32, 100f32)));
+
+                let dialog = adw::Dialog::builder().build();
+                let context_box = gtk::Box::new(gtk::Orientation::Vertical, 12);
+
+                // x
+                let x_adj = create_coordinate_adjustment();
+                let x_label = gtk::Label::new(Some(&"X"));
+                let x_field = gtk::SpinButton::new(Some(&x_adj), 500f64, 0u32);
+                context_box.append(&x_field);
+                context_box.append(&x_label);
+
+                // y
+                let y_adj = create_coordinate_adjustment();
+                let y_label = gtk::Label::new(Some(&"Y"));
+                let y_field = gtk::SpinButton::new(Some(&y_adj), 500f64, 0u32);
+                context_box.append(&y_field);
+                context_box.append(&y_label);
+
+                // width
+                let width_adj = create_coordinate_adjustment();
+                let width_label = gtk::Label::new(Some(&"Width"));
+                let width_field = gtk::SpinButton::new(Some(&width_adj), 500f64, 0u32);
+                context_box.append(&width_field);
+                context_box.append(&width_label);
+
+                // height
+                let height_adj = create_coordinate_adjustment();
+                let height_label = gtk::Label::new(Some(&"Height"));
+                let height_field = gtk::SpinButton::new(Some(&height_adj), 500f64, 0u32);
+                context_box.append(&height_field);
+                context_box.append(&height_label);
+
+                let margin = 16;
+                context_box.set_margin_bottom(margin);
+                context_box.set_margin_top(margin);
+                context_box.set_margin_start(margin);
+                context_box.set_margin_end(margin);
+
+                dialog.set_child(Some(&context_box));
+                dialog.present(Some(obj));
+
                 println!("CUSTOM BTUTON WORKS AAAAAAAAAAAAAA");
             });
 
@@ -183,6 +227,10 @@ mod imp {
     }
 
     impl AdwWindowImpl for AreaSelector {}
+
+    fn create_coordinate_adjustment() -> gtk::Adjustment {
+        return gtk::Adjustment::new(0f64, 0f64, 10000f64, 500f64, 500f64, 500f64);
+    }
 }
 
 glib::wrapper! {
@@ -467,7 +515,7 @@ impl AreaSelector {
 
         self.action_set_enabled("area-selector.reset", selection.is_some());
         self.action_set_enabled("area-selector.done", selection.is_some());
-        self.action_set_enabled("area-selector.manual", selection.is_some());
+        self.action_set_enabled("area-selector.manual", true);
 
         if selection.is_some() {
             imp.done_button.grab_focus();

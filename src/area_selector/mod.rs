@@ -108,40 +108,57 @@ mod imp {
             });
 
             klass.install_action("area-selector.manual", None, move |obj, _, _| {
-                obj.imp()
-                    .view_port
-                    .set_selection(Some(Selection::from_rect(0f32, 0f32, 100f32, 100f32)));
+                let paintable_width = obj.imp().view_port.paintable_rect().unwrap().width();
+                let paintable_height = obj.imp().view_port.paintable_rect().unwrap().height();
+                let intrinstic_width = obj.imp().view_port.paintable().unwrap().intrinsic_width();
+                let mul = paintable_width / intrinstic_width as f32;
 
                 let dialog = adw::Dialog::builder().build();
                 let context_box = gtk::Box::new(gtk::Orientation::Vertical, 12);
 
                 // x
-                let x_adj = create_coordinate_adjustment();
+                let x_adj = create_coordinate_adjustment(
+                    obj.imp().view_port.selection().unwrap().left_x() / mul,
+                );
                 let x_label = gtk::Label::new(Some(&"X"));
                 let x_field = gtk::SpinButton::new(Some(&x_adj), 500f64, 0u32);
                 context_box.append(&x_field);
                 context_box.append(&x_label);
 
                 // y
-                let y_adj = create_coordinate_adjustment();
+                let y_adj = create_coordinate_adjustment(
+                    obj.imp().view_port.selection().unwrap().top_y() / mul,
+                );
                 let y_label = gtk::Label::new(Some(&"Y"));
                 let y_field = gtk::SpinButton::new(Some(&y_adj), 500f64, 0u32);
                 context_box.append(&y_field);
                 context_box.append(&y_label);
 
                 // width
-                let width_adj = create_coordinate_adjustment();
+                let width_adj = create_coordinate_adjustment(
+                    obj.imp().view_port.selection().unwrap().rect().width() / mul,
+                );
                 let width_label = gtk::Label::new(Some(&"Width"));
                 let width_field = gtk::SpinButton::new(Some(&width_adj), 500f64, 0u32);
                 context_box.append(&width_field);
                 context_box.append(&width_label);
 
                 // height
-                let height_adj = create_coordinate_adjustment();
+                let height_adj = create_coordinate_adjustment(
+                    obj.imp().view_port.selection().unwrap().rect().height() / mul,
+                );
                 let height_label = gtk::Label::new(Some(&"Height"));
                 let height_field = gtk::SpinButton::new(Some(&height_adj), 500f64, 0u32);
                 context_box.append(&height_field);
                 context_box.append(&height_label);
+
+                // cancel and apply buttons
+                let cancel_btn = gtk::Button::with_label("Cancel");
+                context_box.append(&cancel_btn);
+
+                let apply_btn = gtk::Button::with_label("Apply");
+                apply_btn.add_css_class("suggested-action");
+                context_box.append(&apply_btn);
 
                 let margin = 16;
                 context_box.set_margin_bottom(margin);
@@ -151,6 +168,32 @@ mod imp {
 
                 dialog.set_child(Some(&context_box));
                 dialog.present(Some(obj));
+
+                // button callbacks
+                cancel_btn.connect_clicked(move |_| {
+                    dialog.close();
+                });
+
+                let obj = obj.clone();
+                apply_btn.connect_clicked(move |_btn| {
+                    let min_usable_x = obj.imp().view_port.paintable_rect().unwrap().x();
+                    let min_usable_y = obj.imp().view_port.paintable_rect().unwrap().y();
+
+                    let mut x = x_adj.value() as f32 * mul;
+                    let mut y = y_adj.value() as f32 * mul;
+                    let mut width = width_adj.value() as f32 * mul;
+                    let mut height = height_adj.value() as f32 * mul;
+
+                    // bounds checks
+                    x = f32::max(x, min_usable_x);
+                    y = f32::max(y, min_usable_y);
+                    width = f32::min(width, paintable_width - x);
+                    height = f32::min(height, paintable_height - x);
+
+                    obj.imp()
+                        .view_port
+                        .set_selection(Some(Selection::from_rect(x, y, width, height)));
+                });
 
                 println!("CUSTOM BTUTON WORKS AAAAAAAAAAAAAA");
             });
@@ -228,8 +271,8 @@ mod imp {
 
     impl AdwWindowImpl for AreaSelector {}
 
-    fn create_coordinate_adjustment() -> gtk::Adjustment {
-        return gtk::Adjustment::new(0f64, 0f64, 10000f64, 500f64, 500f64, 500f64);
+    fn create_coordinate_adjustment(default: f32) -> gtk::Adjustment {
+        return gtk::Adjustment::new(default as f64, 0f64, 10000f64, 500f64, 500f64, 500f64);
     }
 }
 
